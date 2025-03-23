@@ -1,9 +1,10 @@
 // Package echo
 // @Author NuyoahCh
 // @Date 2025/2/12 23:13
-// @Desc
+// @Desc echo server
 package main
 
+// 引入依赖
 import (
 	"flag"
 	"html/template"
@@ -13,18 +14,23 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+// 定义服务地址，flag 包用于处理命令行参数
 var addr = flag.String("addr", "localhost:8080", "http service address")
 
+// 定义 echo 服务 (WebSocket 协议)
 var upgrader = websocket.Upgrader{} // use default options
 
+// echo 读取消息
 func echo(w http.ResponseWriter, r *http.Request) {
 	c, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Print("upgrade:", err)
 		return
 	}
+	// 关闭，导致WebSocket断掉
 	defer c.Close()
 	for {
+		// read
 		mt, message, err := c.ReadMessage()
 		if err != nil {
 			log.Println("read:", err)
@@ -39,15 +45,20 @@ func echo(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// Html文本服务（Http协议）
 func home(w http.ResponseWriter, r *http.Request) {
 	homeTemplate.Execute(w, "ws://"+r.Host+"/echo")
 }
 
+// 主函数
 func main() {
 	flag.Parse()
 	log.SetFlags(0)
+	// 注册了2个处理函数，一个是针对path为/echo的，这是用echo函数处理
 	http.HandleFunc("/echo", echo)
+	// 另一个是针对path为/的，这是用home函数处理
 	http.HandleFunc("/", home)
+	// ListenAndServ e启动了 Http/WebSocket 服务
 	log.Fatal(http.ListenAndServe(*addr, nil))
 }
 
